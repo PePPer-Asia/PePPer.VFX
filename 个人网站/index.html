@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>派婆 | PePPer.VFX Portfolio</title>
+    <style>
+        :root {
+            --zzz-green: #bfff00; 
+            --zzz-black: #050505;  
+            --zzz-grey: #121212;   
+            --zzz-border: #2a2a2a; 
+            --zzz-bg-text: rgba(255, 255, 255, 0.08); 
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html { 
+            scroll-behavior: smooth; 
+        }
+        
+        body { 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            background: var(--zzz-black); 
+            color: #fff; 
+            overflow-x: hidden; 
+            width: 100%; 
+        }
+
+        /* --- 点击烟花特效 Canvas --- */
+        #click-spark-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999;
+        }
+
+        /* --- ShinyText 流光效果 --- */
+        .shiny-text {
+            background: linear-gradient(
+                120deg, 
+                var(--zzz-green) 35%, 
+                #ffffff 50%, 
+                var(--zzz-green) 65%
+            );
+            background-size: 250% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine-logic 3s infinite linear;
+            display: inline-block;
+        }
+        @keyframes shine-logic {
+            0% { background-position: 150% center; }
+            100% { background-position: -150% center; }
+        }
+        .shiny-text:hover { animation-play-state: paused; }
+
+        /* --- 动态背景 --- */
+        .bg-scroller { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+        .scrolling-wrapper { 
+            position: absolute; top: -100%; left: -100%; width: 300%; height: 300%; 
+            transform: rotate(-25deg); display: flex; flex-direction: column; 
+            gap: 0px; 
+        }
+        .row { 
+            display: flex; white-space: nowrap; font-size: 8rem; font-weight: 900; 
+            color: var(--zzz-bg-text); 
+            gap: 10px; 
+            line-height: 1.1; 
+            animation: moveX 40s linear infinite; 
+        }
+        @keyframes moveX { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* --- 导航栏 --- */
+        nav { 
+            position: fixed; top: 0; width: 100%; height: auto; min-height: 60px; padding: 0 5%; 
+            display: flex; justify-content: space-between; align-items: center; 
+            z-index: 2000; background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(15px); 
+            border-bottom: 3px solid var(--zzz-green); flex-wrap: wrap;
+        }
+        .logo { font-size: 1.5rem; font-weight: 900; color: var(--zzz-green); font-style: italic; cursor: pointer; padding: 10px 0; }
+        .nav-links { display: flex; list-style: none; overflow-x: auto; -webkit-overflow-scrolling: touch; height: 100%; align-items: center; }
+        @media (min-width: 768px) { .nav-links { overflow: visible; } }
+
+        .nav-item { 
+            color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: 700; 
+            padding: 0 15px; height: 60px; display: flex; align-items: center; 
+            border-left: 1px solid var(--zzz-border); transition: 0.3s; white-space: nowrap; cursor: pointer;
+        }
+        .nav-item:hover { background: var(--zzz-green); color: #000; }
+
+        .dropdown { position: relative; height: 100%; display: flex; align-items: center; }
+        .dropdown-content {
+            display: none; position: absolute; top: 60px; right: 0;
+            background-color: var(--zzz-grey); min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); border: 1px solid var(--zzz-green); z-index: 3000;
+        }
+        .dropdown:hover .dropdown-content { display: block; }
+        .dropdown-content a {
+            color: #fff; padding: 15px 20px; text-decoration: none; display: block;
+            font-size: 0.8rem; font-weight: bold; border-bottom: 1px solid var(--zzz-border); transition: 0.2s;
+        }
+        .dropdown-content a:hover { background: var(--zzz-green); color: #000; }
+
+        /* --- 板块通用设置 --- */
+        section { 
+            min-height: 100vh;
+            padding: 120px 5% 80px; 
+            max-width: 100%; 
+            margin: 0 auto; 
+            border-bottom: 1px solid var(--zzz-border); 
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+        }
+
+        /* --- 首页板块 --- */
+        #home { 
+            padding-top: 15vh;
+            justify-content: center;
+            align-items: center; 
+            text-align: center;
+        }
+        .hero-title-wrapper { position: relative; cursor: crosshair; width: fit-content; }
+        .hero-title { 
+            font-size: clamp(3rem, 18vw, 9.5rem); font-weight: 900; 
+            letter-spacing: -4px; transition: 0.3s; 
+        }
+        .hover-card {
+            position: absolute; left: 50%; top: 110%; transform: translateX(-50%);
+            width: 90vw; max-width: 360px; background: var(--zzz-green); color: #000; padding: 20px; 
+            opacity: 0; visibility: hidden; transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            clip-path: polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%); z-index: 100;
+        }
+        .hero-title-wrapper:hover .hover-card { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(10px); }
+
+        .scroll-hint { position: relative; margin-top: 60px; display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--zzz-green); }
+        .arrow-box { 
+            width: 20px; height: 20px; border-right: 3px solid var(--zzz-green); border-bottom: 3px solid var(--zzz-green); 
+            transform: rotate(45deg); animation: bounceZ 2s infinite; margin-top: 10px;
+        }
+        @keyframes bounceZ { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-10px) rotate(45deg); } }
+
+        /* --- 章节通用标题 --- */
+        .section-header { border-left: 8px solid var(--zzz-green); padding-left: 15px; margin-bottom: 40px; max-width: 1400px; margin-left: auto; margin-right: auto; width: 100%; }
+        .section-header h2 { font-size: clamp(1.8rem, 6vw, 2.8rem); font-weight: 900; }
+
+        /* --- 作品展示 --- */
+        .portfolio-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(45%, 1fr)); 
+            gap: 40px; 
+            max-width: 1600px; 
+            width: 100%; 
+            margin: 0 auto; 
+        }
+        @media (max-width: 768px) {
+            .portfolio-grid { grid-template-columns: 1fr; }
+        }
+        .work-card { background: var(--zzz-grey); border: 1px solid var(--zzz-border); transition: 0.4s; position: relative; cursor: pointer; overflow: hidden; }
+        .work-card:hover { border-color: var(--zzz-green); transform: translateY(-10px); }
+        
+        .work-preview { width: 100%; aspect-ratio: 16/9; background: #000; border-bottom: 2px solid var(--zzz-green); position: relative; overflow: hidden; }
+        .work-preview video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 缩略图通用样式 */
+        .preview-thumbs {
+            display: flex; gap: 5px; z-index: 5;
+        }
+        .thumb-img {
+            width: 60px; height: 35px; border: 1px solid var(--zzz-green); object-fit: cover; background: #000;
+        }
+
+        .work-preview::after { 
+            content: 'VIEW_PROJECT'; 
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.5); font-size: 1rem; font-weight: 900; color: #fff; letter-spacing: 4px;
+            opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2;
+        }
+        .work-card:hover .work-preview::after { opacity: 1; }
+
+        .work-content { padding: 35px; position: relative; }
+        .work-tag { background: var(--zzz-green); color: #000; font-size: 0.8rem; font-weight: 900; padding: 4px 12px; margin-bottom: 15px; display: inline-block; }
+        .work-content h3 { font-size: 1.8rem; margin-bottom: 15px; }
+        .work-content p { color: #aaa; line-height: 1.6; font-size: 1.1rem; }
+
+        /* 弹窗样式 */
+        .vfx-modal {
+            display: none; position: fixed; z-index: 3000; inset: 0;
+            background: rgba(0,0,0,0.95); backdrop-filter: blur(15px);
+            justify-content: center; align-items: center; padding: 10px;
+        }
+        .modal-container {
+            background: var(--zzz-grey); width: 100%; max-width: 1000px; max-height: 90vh; overflow-y: auto;
+            border: 2px solid var(--zzz-green); position: relative;
+            animation: modalPop 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.28);
+        }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .modal-close { position: absolute; right: 15px; top: 10px; color: var(--zzz-green); font-size: 2rem; cursor: pointer; z-index: 3001; }
+        .modal-video-area { width: 100%; aspect-ratio: 16/9; background: #000; border-bottom: 1px solid var(--zzz-border); position: relative; }
+        .modal-video-area video, .modal-video-area img { width: 100%; height: 100%; }
+        
+        /* 视频切换箭头 */
+        .nav-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%); background: rgba(191,255,0,0.3);
+            color: #fff; border: none; padding: 15px 10px; cursor: pointer; font-weight: bold; font-size: 1.5rem;
+            transition: 0.3s; z-index: 10;
+        }
+        .nav-arrow:hover { background: var(--zzz-green); color: #000; }
+        .arrow-left { left: 0; }
+        .arrow-right { right: 0; }
+
+        .modal-info-area { padding: 30px; }
+        .modal-info-area h2 { color: var(--zzz-green); font-size: 1.8rem; margin-bottom: 10px; }
+        .modal-time { color: #666; font-family: monospace; display: block; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        .modal-text { color: #ccc; line-height: 1.8; font-size: 1rem; }
+
+        /* --- 整合档案板块 --- */
+        .archive-gamer-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        @media (min-width: 1024px) {
+            .archive-gamer-container { grid-template-columns: 380px 1fr; }
+        }
+
+        .id-card {
+            background: var(--zzz-green);
+            color: #000;
+            padding: 2px;
+            clip-path: polygon(0 0, 100% 0, 100% 95%, 90% 100%, 0 100%);
+            height: fit-content;
+        }
+        .id-card-inner {
+            background: #000;
+            color: #fff;
+            padding: 30px 20px;
+            clip-path: polygon(0 0, 100% 0, 100% 95%, 90% 100%, 0 100%);
+        }
+        .id-header { border-bottom: 1px solid var(--zzz-green); padding-bottom: 15px; margin-bottom: 20px; position: relative;}
+        .id-name { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
+        .id-school { font-size: 0.85rem; color: var(--zzz-green); font-weight: 800; margin-top: 5px; }
+
+        .skill-box { margin-top: 30px; }
+        .skill-box-title { font-size: 0.7rem; font-weight: 900; background: var(--zzz-green); color: #000; display: inline-block; padding: 2px 8px; margin-bottom: 10px; transform: skewX(-10deg); }
+        .skill-tags-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .skill-tag { border: 1px solid rgba(191,255,0,0.3); color: var(--zzz-green); padding: 4px 10px; font-size: 0.7rem; font-weight: bold; transition: 0.3s; }
+        .skill-tag:hover { background: var(--zzz-green); color: #000; }
+
+        .data-panel { display: flex; flex-direction: column; gap: 20px; }
+        .panel-section {
+            background: var(--zzz-grey);
+            border: 1px solid var(--zzz-border);
+            position: relative;
+            overflow: hidden;
+        }
+        .panel-section::before {
+            content: "DATA_NODE";
+            position: absolute; right: 10px; top: 10px;
+            font-size: 0.6rem; color: #333; font-weight: 900;
+        }
+        .panel-header {
+            background: #1a1a1a;
+            padding: 10px 20px;
+            border-bottom: 2px solid var(--zzz-green);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .panel-title { font-size: 0.85rem; font-weight: 900; letter-spacing: 2px; color: var(--zzz-green); }
+        .panel-content { padding: 25px; }
+
+        .exp-item { border-left: 2px solid var(--zzz-green); padding-left: 20px; margin-bottom: 10px; position: relative; }
+        .exp-date { color: var(--zzz-green); font-family: monospace; font-weight: 900; font-size: 1rem; }
+        .exp-company { font-weight: 900; font-size: 1.1rem; margin: 5px 0; display: block; }
+        .exp-desc { color: #aaa; line-height: 1.7; font-size: 0.9rem; }
+
+        .gamer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
+        .gamer-card { background: #0a0a0a; border: 1px solid #1a1a1a; padding: 15px; transition: 0.3s; }
+        .gamer-card:hover { border-color: var(--zzz-green); background: #111; }
+        .gamer-type { font-size: 0.65rem; color: var(--zzz-green); font-weight: 900; border-bottom: 1px solid #222; margin-bottom: 8px; padding-bottom: 4px; display: block; }
+        .gamer-text { font-size: 0.85rem; line-height: 1.6; color: #ddd; }
+        .game-h { color: var(--zzz-green); font-weight: bold; }
+
+        .final-motto { 
+            min-height: 60vh;
+            background: linear-gradient(transparent, var(--zzz-green)); 
+            color: #000; padding: 100px 5% 80px; text-align: center;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .motto-wrap { transform: skewX(-10deg); background: #000; display: inline-block; padding: 15px 35px; border: 2px solid var(--zzz-green); max-width: 95%; }
+        .motto-content { color: var(--zzz-green); font-size: clamp(1.2rem, 5vw, 2.2rem); font-weight: 900; transform: skewX(10deg); letter-spacing: 3px; }
+
+        footer { 
+            padding: 40px; text-align: center; background: var(--zzz-green); color: #000; font-weight: 900; 
+            letter-spacing: 2px; font-size: 0.75rem; word-break: break-all; width: 100%;
+        }
+        
+        /* 侧边联系 */
+        .side-contact-wrapper { position: fixed; left: 0; top: 15%; z-index: 2500; display: flex; flex-direction: column; gap: 10px; }
+        .side-contact { position: relative; display: flex; align-items: center; }
+        .contact-tag {
+            background: var(--zzz-green); color: #000; padding: 15px 10px; cursor: pointer;
+            writing-mode: vertical-lr; font-weight: 900; letter-spacing: 2px; font-size: 0.8rem;
+            border: 2px solid #000; border-left: none; clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+            transition: 0.3s cubic-bezier(0.19, 1, 0.22, 1); display: flex; flex-direction: column; align-items: center;
+        }
+        .contact-tag svg { width: 22px; height: 22px; margin-bottom: 8px; }
+        .qr-card {
+            position: absolute; left: 50px; top: 0; width: 200px; background: var(--zzz-grey);
+            border: 3px solid var(--zzz-green); padding: 15px; opacity: 0; visibility: hidden; transform: translateX(-20px);
+            transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1); text-align: center;
+        }
+        .qr-card img { width: 100%; height: auto; display: block; background: #fff; margin: 10px 0; }
+        .side-contact:hover .qr-card { opacity: 1; visibility: visible; transform: translateX(0); }
+    </style>
+</head>
+<body>
+
+    <canvas id="click-spark-canvas"></canvas>
+
+    <div class="side-contact-wrapper">
+        <div class="side-contact">
+            <div class="contact-tag">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.225 3.5C4.152 3.5.85 6.208.85 9.544c0 1.89 1.066 3.58 2.73 4.745-.143.528-.517 1.488-.517 1.488l-.04.102c-.012.03-.016.058-.016.085 0 .092.073.167.165.167.03 0 .056-.008.082-.023 0 0 1.545-.875 2.15-1.127.27.054.55.082.83.082 4.075 0 7.375-2.707 7.375-6.044S12.3 3.5 8.225 3.5zm10.237 5.188c-3.11 0-5.63 2.062-5.63 4.607 0 2.544 2.52 4.606 5.63 4.606.214 0 .426-.012.635-.038.463.192 1.64.86 1.64.86.02.013.04.018.063.018.07 0 .126-.057.126-.128 0-.02-.004-.042-.012-.064l-.03-.078s-.287-.733-.396-1.137c1.272-.89 2.086-2.18 2.086-3.615 0-2.545-2.52-4.607-5.63-4.607z"/></svg>
+            </div>
+            <div class="qr-card">
+                <div style="background:var(--zzz-green); color:#000; font-size:0.7rem; font-weight:900; padding:2px;">WECHAT_CONTACT</div>
+                <img src="wechat.png" alt="WeChat QR Code">
+                <p style="font-size: 0.7rem; color: var(--zzz-green); font-weight: bold;">ID: _404NotFoundPePPer_</p>
+            </div>
+        </div>
+
+        <div class="side-contact">
+            <div class="contact-tag">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 12.19c-.21.14-.38.31-.5.51-.12.2-.18.41-.18.63 0 .22.06.43.18.63.12.2.29.37.5.51.21.14.45.21.72.21.27 0 .51-.07.72-.21.21-.14.38-.31.5-.51.12-.2.18-.41.18-.63 0-.22-.06-.43-.18-.63-.12-.2-.29-.37-.5-.51-.21-.14-.45-.21-.72-.21-.27 0-.51.07-.72.21zM8.96 14.34c-.21.14-.38.31-.5.51-.12.2-.18.41-.18.63 0 .22.06.43.18.63.12.2.29.37.5.51.21.14.45.21.72.21.27 0 .51-.07.72-.21.21-.14.38-.31.5-.51.12-.2.18-.41.18-.63 0-.22-.06-.43-.18-.63-.12-.2-.29-.37-.5-.51-.21-.14-.45-.21-.72-.21-.27 0-.51.07-.72.21zM12 4.5c3.5 0 6.34 2.46 6.34 5.5s-2.84 5.5-6.34 5.5-6.34-2.46-6.34-5.5 2.84-5.5 6.34-5.5z"/></svg>
+            </div>
+            <div class="qr-card">
+                <div style="background:var(--zzz-green); color:#000; font-size:0.7rem; font-weight:900; padding:2px;">QQ_CONTACT</div>
+                <img src="qq.png" alt="QQ QR Code">
+                <p style="font-size: 0.7rem; color: var(--zzz-green); font-weight: bold;">ID: </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-scroller">
+        <div class="scrolling-wrapper">
+            <script>
+                const txt = "PePPer PePPer PePPer PePPer PePPer PePPer PePPer PePPer ";
+                for(let i=0; i<30; i++) { 
+                    document.write(`<div class="row"><span>${txt}</span><span>${txt}</span></div>`); 
+                }
+            </script>
+        </div>
+    </div>
+
+    <nav>
+        <div class="logo" onclick="window.scrollTo(0,0)">PePPer.VFX</div>
+        <div class="nav-links">
+            <a href="#works" class="nav-item">作品 WORKS</a>
+            <a href="#archive" class="nav-item">档案 ARCHIVE</a>
+            <div class="dropdown">
+                <span class="nav-item">其他网站 SITES</span>
+                <div class="dropdown-content">
+                    <a href="https://space.bilibili.com/505040868" target="_blank">bilibili</a>
+                    <a href="https://www.magesbox.com/member/59374" target="_blank">Magesbox</a>
+                    <a href="https://www.xiaohongshu.com/user/profile/67493ba2000000001d02ea28" target="_blank">RED</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section id="home">
+        <div class="hero-title-wrapper">
+            <h1 class="hero-title shiny-text" onclick="location.href='#works'">PePPer</h1>
+            <div class="hover-card">
+                <div style="font-weight:900; font-size:1.3rem; border-bottom:2px solid #000; margin-bottom:15px; padding-bottom:5px">派婆 / PePPer</div>
+                <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.8;">
+                    <p>📞 17730077950</p>
+                    <p>📧 761015482@qq.com</p>
+                    <p style="margin-top:10px; border-top:1px solid #000; padding-top:10px; font-weight:900;">
+                        STATUS: 游戏特效实习 / 随时到岗
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div style="background:var(--zzz-green); color:#000; font-size:1.6rem; font-weight:900; padding:10px 60px; transform:skewX(-15deg); margin-top:25px;">VFX DESIGNER / INTERN</div>
+        <a href="#works" class="scroll-hint"><span style="font-weight:900; letter-spacing:3px; font-size:0.75rem">VIEW WORKS</span><div class="arrow-box"></div></a>
+    </section>
+
+    <section id="works">
+        <div class="section-header"><h2><span class="shiny-text">作品展示</span> / WORKS GRID</h2></div>
+        <div class="portfolio-grid">
+            <div class="work-card" onclick="openVfxModal('作品01：招财进宝', '2026.02', '招财进宝展示作品。采用工业化 VFX 流程，结合 URP Shader 表现极致美学。', ['1-招财进宝展示视频.mp4', '1-招财进宝展示图.png', '1-招财进宝设计草图.png'])">
+                <div class="work-preview">
+                    <video src="1-招财进宝展示视频.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2026.02</span>
+                    <h3>作品01：招财进宝</h3>
+                    <p style="padding-right: 140px;">招财进宝展示作品。采用工业化 VFX 流程，结合 URP Shader 表现极致美学。</p>
+                    <div class="preview-thumbs" style="position: absolute; right: 20px; bottom: 20px;">
+                        <img src="1-招财进宝展示图.png" class="thumb-img" alt="展示图" style="width: 60px; height: 35px; border: 1px solid var(--zzz-green);">
+                        <img src="1-招财进宝设计草图.png" class="thumb-img" alt="草图" style="width: 60px; height: 35px; border: 1px solid var(--zzz-green);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品02：远程攻击', '2025.11', '远程攻击技能表现，包含弹道轨迹与击中反馈。', '2-远程攻击展示视频.mp4')">
+                <div class="work-preview">
+                    <video src="2-远程攻击展示视频.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2025.11</span>
+                    <h3>作品02：远程攻击</h3>
+                    <p>高质量实时渲染与动力学粒子模拟练习</p>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品03：艾莲乔', '2025.10', '深度还原角色技能表现，包含多阶段动作特效切换。', ['3-艾莲乔展示视频2.mp4', '3-艾莲乔展示视频.mp4'])">
+                <div class="work-preview">
+                    <video src="3-艾莲乔展示视频2.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2025.10</span>
+                    <h3>作品03：艾莲乔</h3>
+                    <p>角色特效展示（点击查看更多视角）</p>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品04：萝卜炸弹', '2026.02', '萝卜炸弹特效作品。包含完整的受击反馈与爆炸效果。', ['4-萝卜炸弹展示视频.mp4', '4-萝卜炸弹设计稿.png'])">
+                <div class="work-preview">
+                    <video src="4-萝卜炸弹展示视频.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2026.02</span>
+                    <h3>作品04：萝卜炸弹</h3>
+                    <p style="padding-right: 80px;">萝卜炸弹特效作品。包含完整的受击反馈与爆炸效果。</p>
+                    <div class="preview-thumbs" style="position: absolute; right: 20px; bottom: 20px;">
+                        <img src="4-萝卜炸弹设计稿.png" class="thumb-img" alt="设计稿" style="width: 60px; height: 35px; border: 1px solid var(--zzz-green);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品05：爆炸展示', '2026.02', '爆炸视觉特效展示。', '5-爆炸展示视频.mp4')">
+                <div class="work-preview">
+                    <video src="5-爆炸展示视频.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2026.02</span>
+                    <h3>作品05：爆炸展示</h3>
+                    <p>震撼的爆炸火花与烟雾模拟效果。</p>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品06：星见雅展示', '2026.02', '角色技能视觉表现练习。', '6-星见雅展示视频.mp4')">
+                <div class="work-preview">
+                    <video src="6-星见雅展示视频.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2026.02</span>
+                    <h3>作品06：星见雅展示</h3>
+                    <p>刀锋斩击与灵力流动的特效呈现。</p>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品07：圣诞场景展示', '2025.12', '节日氛围环境特效。', '7-圣诞场景展示视频.mp4')">
+                <div class="work-preview">
+                    <video src="7-圣诞场景展示视频.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2025.12</span>
+                    <h3>作品07：圣诞场景展示</h3>
+                    <p>包含降雪模拟与节日灯光动效。</p>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('作品08：ae字体加动效设计', '2025.12', '动态图形与排版练习。', '8-ae字体加动效设计.mp4')">
+                <div class="work-preview">
+                    <video src="8-ae字体加动效设计.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2025.12</span>
+                    <h3>作品08：AE动效设计</h3>
+                    <p>结合文字排版与视觉节奏的动态展示。</p>
+                </div>
+            </div>
+
+            <div class="work-card" onclick="openVfxModal('小练习', '2026.02', '点击查看多个练习。', ['火术法球.mp4', '点击特效.mp4', '海浪.mp4', '小小格温.mp4'])">
+                <div class="work-preview">
+                    <video src="火术法球.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <div class="work-content">
+                    <span class="work-tag">2026.02</span>
+                    <h3>小练习</h3>
+                    <p>点击查看多个练习。</p>
+                </div>
+            </div>
+
+            <script>
+                for(let i=10; i<=10; i++) {
+                    document.write(`
+                    <div class="work-card" onclick="openVfxModal('待上传作品 ${i}', '2026.XX', '作品描述占位符，请点击此处上传您的特效作品。')">
+                        <div class="work-preview"></div>
+                        <div class="work-content">
+                            <span class="work-tag">COMING SOON</span>
+                            <h3>待上传作品 ${i}</h3>
+                            <p>等待作品内容填充...</p>
+                        </div>
+                    </div>
+                    `);
+                }
+            </script>
+        </div>
+    </section>
+
+    <section id="archive">
+        <div class="section-header"><h2><span class="shiny-text">代理人档案</span> / ARCHIVE & GAMER</h2></div>
+        
+        <div class="archive-gamer-container">
+            <div class="id-card">
+                <div class="id-card-inner">
+                    <div class="id-header">
+                        <h1 class="id-name">PePPer.派婆</h1>
+                        <p class="id-school">浙江传媒学院 / 数字媒体技术</p>
+                        <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 5px;">CLASS OF 2027 | CET-4 CERTIFIED</p>
+                    </div>
+
+                    <div class="skill-box">
+                        <span class="skill-box-title">视觉武装 / TECH_STACK</span>
+                        <div class="skill-tags-group">
+                            <span class="skill-tag">Unity</span>
+                            <span class="skill-tag">UE5</span>
+                            <span class="skill-tag">3dsMax</span>
+                            <span class="skill-tag">Blender</span>
+                            <span class="skill-tag">Adobe AE</span>
+                            <span class="skill-tag">Adobe AI/PS</span>
+                            <span class="skill-tag">Plastic SCM</span>
+                            <span class="skill-tag">AIGC Tools</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 40px; border-top: 1px solid #333; padding-top: 20px;">
+                        <div style="font-size: 0.6rem; color: #666; font-weight: 900;">LAST_UPDATE: 2026.02.16</div>
+                        <div style="font-size: 0.6rem; color: var(--zzz-green); font-weight: 900;">ENCRYPTED_BIO_DATA</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span class="panel-title">实战记录</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="exp-item">
+                            <span class="exp-date">2025.01 - PRESENT</span>
+                            <h4 class="exp-company">上海盛趣游戏公司 <span style="font-size: 0.7rem; color: var(--zzz-green); vertical-align: middle; margin-left: 10px;">[ 游戏特效实习生 ]</span></h4>
+                            <p class="exp-desc">协助项目组进行全流程特效制作，深入参与端游/手游项目；从设计到引擎实现的全流程视觉表现；配合美术与程序团队进行性能调试与优化；运用 Unity/AE 特效系统完成技能、场景、武器、UI等动态视觉。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span class="panel-title">玩家同步 / GAMER_DATA</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="gamer-grid">
+                            <div class="gamer-card">
+                                <span class="gamer-type">CONSOLE_LOG</span>
+                                <p class="gamer-text">深度体验 <span class="game-h">《斯普拉遁3》</span>(200h+)、<span class="game-h">《动物森友会》</span>等。熟悉叙事驱动与箱庭探索玩法。</p>
+                            </div>
+                            <div class="gamer-card">
+                                <span class="gamer-type">MOBILE_LINK</span>
+                                <p class="gamer-text">深度了解国内二游顶尖特效：<span class="game-h">《崩坏：星穹铁道》</span>、《绝区零》、《无限暖暖》、《鸣潮》。</p>
+                            </div>
+                            <div class="gamer-card">
+                                <span class="gamer-type">COMPETITIVE_SYNC</span>
+                                <p class="gamer-text">擅长 <span class="game-h">《Apex英雄》</span>、<span class="game-h">《无畏契约》</span> (200h+)；金铲铲之战 <span class="game-h">大师段位</span>。</p>
+                            </div>
+                            <div class="gamer-card">
+                                <span class="gamer-type">DIVE_IN</span>
+                                <p class="gamer-text">MMORPG 核心受众：<span class="game-h">《FF14》</span>、《魔兽世界》、《龙之谷》。深刻理解长线运营体系。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="final-motto">
+        <div class="motto-wrap"><div class="motto-content">“ 在 0.1 秒的帧率间创造极致美学 ”</div></div>
+    </div>
+
+    <footer>派婆 | PePPer.VFX | 2026 PORTFOLIO</footer>
+
+    <div id="vfxModal" class="vfx-modal" onclick="closeVfxModal()">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <span class="modal-close" onclick="closeVfxModal()">&times;</span>
+            <div class="modal-video-area" id="modalVideoContainer"></div>
+            <div class="modal-info-area">
+                <h2 id="mTitle">项目名称</h2>
+                <span class="modal-time" id="mTime">202X.XX</span>
+                <p class="modal-text" id="mDesc">加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 烟花粒子特效
+         */
+        (function() {
+            const canvas = document.getElementById('click-spark-canvas');
+            const ctx = canvas.getContext('2d');
+            let sparks = [];
+
+            const config = {
+                sparkColor: '#bfff00',
+                sparkSize: 10,     
+                sparkRadius: 20,   
+                sparkCount: 8,     
+                duration: 400,     
+                easing: 'ease-out' 
+            };
+
+            const easeOut = (t) => t * (2 - t);
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function animate(timestamp) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                sparks = sparks.filter(spark => {
+                    const elapsed = timestamp - spark.startTime;
+                    if (elapsed >= config.duration) return false;
+                    const progress = elapsed / config.duration;
+                    const eased = easeOut(progress);
+                    const distance = eased * config.sparkRadius;
+                    const lineLength = config.sparkSize * (1 - eased);
+                    const x1 = spark.x + distance * Math.cos(spark.angle);
+                    const y1 = spark.y + distance * Math.sin(spark.angle);
+                    const x2 = spark.x + (distance + lineLength) * Math.cos(spark.angle);
+                    const y2 = spark.y + (distance + lineLength) * Math.sin(spark.angle);
+                    ctx.strokeStyle = config.sparkColor;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                    return true;
+                });
+                requestAnimationFrame(animate);
+            }
+
+            document.addEventListener('click', (e) => {
+                const now = performance.now();
+                for (let i = 0; i < config.sparkCount; i++) {
+                    sparks.push({
+                        x: e.clientX,
+                        y: e.clientY,
+                        angle: (2 * Math.PI * i) / config.sparkCount,
+                        startTime: now
+                    });
+                }
+            });
+            requestAnimationFrame(animate);
+        })();
+
+        // 弹窗逻辑
+        let currentVideoList = [];
+        let currentVideoIndex = 0;
+
+        function openVfxModal(title, time, desc, videoSrc) {
+            document.getElementById('mTitle').innerText = title;
+            document.getElementById('mTime').innerText = time;
+            document.getElementById('mDesc').innerText = desc;
+            
+            const videoContainer = document.getElementById('modalVideoContainer');
+            
+            // 判断是否是多资源（数组）
+            if(Array.isArray(videoSrc)) {
+                currentVideoList = videoSrc;
+                currentVideoIndex = 0;
+                renderVideoWithNav();
+            } else if(videoSrc) {
+                currentVideoList = [videoSrc];
+                currentVideoIndex = 0;
+                renderVideoWithNav(); 
+            } else {
+                videoContainer.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:var(--zzz-green); font-weight:900;">[ 资源暂未上传 ]</div>`;
+            }
+
+            document.getElementById('vfxModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function renderVideoWithNav() {
+            const container = document.getElementById('modalVideoContainer');
+            const src = currentVideoList[currentVideoIndex];
+            
+            const isImage = src.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+            let mediaContent = isImage 
+                ? `<img id="modalMainMedia" src="${src}" style="width:100%; height:100%; object-fit:contain; background:#000;">`
+                : `<video id="modalMainMedia" src="${src}" controls autoplay playsinline style="width:100%; height:100%; background:#000;"></video>`;
+
+            container.innerHTML = `
+                ${currentVideoList.length > 1 ? '<button class="nav-arrow arrow-left" onclick="changeVideo(-1)">&#10094;</button>' : ''}
+                ${mediaContent}
+                ${currentVideoList.length > 1 ? '<button class="nav-arrow arrow-right" onclick="changeVideo(1)">&#10095;</button>' : ''}
+                ${currentVideoList.length > 1 ? `
+                    <div style="position:absolute; bottom:15px; left:50%; transform:translateX(-50%); color:var(--zzz-green); font-weight:bold; text-shadow:2px 2px #000; z-index:11;">
+                        ${currentVideoIndex + 1} / ${currentVideoList.length}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function changeVideo(dir) {
+            currentVideoIndex += dir;
+            if (currentVideoIndex >= currentVideoList.length) currentVideoIndex = 0;
+            if (currentVideoIndex < 0) currentVideoIndex = currentVideoList.length - 1;
+            renderVideoWithNav(); 
+        }
+
+        function closeVfxModal() { 
+            document.getElementById('modalVideoContainer').innerHTML = ""; 
+            document.getElementById('vfxModal').style.display = 'none'; 
+            document.body.style.overflow = 'auto'; 
+        }
+    </script>
+</body>
+</html>
